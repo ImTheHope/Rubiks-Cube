@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube 3D</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            user-select: none
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0
+        }
+
+        canvas {
+            display: block
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 280px
+        }
+
+        .panel {
+            background: rgba(20, 20, 30, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px
+        }
+
+        .panel h3 {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #888;
+            margin-bottom: 10px
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px)
+        }
+
+        .btn:active {
+            transform: translateY(0)
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-color: transparent;
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #7c7ff7, #a78bfa)
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-color: transparent;
+            color: #fff
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #f87171, #ef4444)
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: transparent;
+            color: #fff
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #4ade80, #22c55e)
+        }
+
+        .move-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 4px
+        }
+
+        .btn-move {
+            padding: 6px 2px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.04);
+            color: #ccc;
+            cursor: pointer;
+            transition: all 0.15s ease
+        }
+
+        .btn-move:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff
+        }
+
+        #stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        #move-count {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6366f1, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text
+        }
+
+        #move-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px
+        }
+
+        #history-panel {
+            max-height: 140px;
+            overflow-y: auto
+        }
+
+        #history-panel::-webkit-scrollbar {
+            width: 4px
+        }
+
+        #history-panel::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        #history-panel::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 4px
+        }
+
+        #move-history {
+            font-size: 12px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: #999;
+            line-height: 1.8;
+            word-wrap: break-word
+        }
+
+        #move-history span {
+            display: inline-block;
+            padding: 1px 6px;
+            margin: 2px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            color: #bbb;
+            transition: all 0.2s
+        }
+
+        #move-history span:last-child {
+            background: rgba(99, 102, 241, 0.25);
+            color: #a5b4fc
+        }
+
+        .help-text {
+            font-size: 11px;
+            color: #555;
+            line-height: 1.5
+        }
+
+        #solved-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            padding: 8px 20px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none
+        }
+
+        #solved-indicator.visible {
+            opacity: 1
+        }
+    </style>
+</head>
+
+<body>
+    <div id="solved-indicator">✅ Cube résolu !</div>
+    <div id="canvas-container"></div>
+    <div id="controls">
+        <div class="panel">
+            <h3>Actions</h3>
+            <div class="btn-row">
+                <button class="btn btn-primary" onclick="scrambleCube()">🔀 Mélanger</button>
+                <button class="btn btn-danger" onclick="resetCube()">🔄 Réinitialiser</button>
+                <button class="btn btn-success" onclick="solveCube()">✨ Résoudre</button>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>Mouvements</h3>
+            <div class="move-grid">
+                <button class="btn-move" onclick="doMove('R')">R</button>
+                <button class="btn-move" onclick="doMove('L')">L</button>
+                <button class="btn-move" onclick="doMove('U')">U</button>
+                <button class="btn-move" onclick="doMove('D')">D</button>
+                <button class="btn-move" onclick="doMove('F')">F</button>
+                <button class="btn-move" onclick="doMove('B')">B</button>
+                <button class="btn-move" onclick="doMove('Ri')">R'</button>
+                <button class="btn-move" onclick="doMove('Li')">L'</button>
+                <button class="btn-move" onclick="doMove('Ui')">U'</button>
+                <button class="btn-move" onclick="doMove('Di')">D'</button>
+                <button class="btn-move" onclick="doMove('Fi')">F'</button>
+                <button class="btn-move" onclick="doMove('Bi')">B'</button>
+            </div>
+        </div>
+        <div class="panel">
+            <div id="stats">
+                <div>
+                    <div id="move-count">0</div>
+                    <div id="move-label">coups</div>
+                </div>
+            </div>
+        </div>
+        <div class="panel" id="history-panel">
+            <h3>Historique</h3>
+            <div id="move-history"></div>
+        </div>
+        <div class="panel">
+            <p class="help-text">🖱️ Glisser sur une face pour la tourner.<br>
+                Glisser dans le vide pour tourner la vue.<br>
+                Clavier : R, L, U, D, F, B (+ Shift pour inverse).</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        /* ================================================================
+           RUBIK'S CUBE 3D — v3 Cubie-based color tracking
+           Auteur : ImTheHope
+           ================================================================
+           Ce projet implémente un Rubik's Cube 3x3x3 fonctionnel utilisant
+           Three.js pour le rendu 3D.
+           
+           FONCTIONNEMENT TECHNIQUE :
+           1. Chaque cubie (petit cube) suit sa propre position et ses couleurs.
+           2. Les couleurs sont stockées dans userData.colors [+X, -X, +Y, -Y, +Z, -Z].
+           3. Lors d'une rotation de face, les couleurs sont permutées mathématiquement
+              via des tables de permutation (COLOR_PERMS).
+           4. L'animation utilise un pivotGroup temporaire pour faire tourner une face.
+           5. Le système de drag à la souris utilise le Raycasting pour détecter les faces.
+           ================================================================ */
+
+        // Couleurs : indices 0-5 = blanc, jaune, vert, bleu, orange, rouge, -1 = interne
+        const PALETTE = [0xffffff, 0xffd500, 0x009b48, 0x0045ad, 0xff5900, 0xb90000];
+        const BLACK = 0x1a1a1a;
+        const CUBIE_SIZE = 0.93;
+        const GAP = 1.0;
+
+        let scene, camera, renderer, cubeGroup, pivotGroup;
+        let cubies = [];
+        let isAnimating = false;
+        let moveQueue = [];
+        let isProcessing = false;
+        let moveHistory = [];
+        let moveCount = 0;
+
+        /* ---- Permutations de couleurs par rotation CW ----
+           Array indices = [+X, -X, +Y, -Y, +Z, -Z]
+           Chaque permutation indique : new[i] = old[perm[i]]
+           Calculées via la rotation inverse appliquée aux 6 directions. */
+        const COLOR_PERMS = {
+            // R CW = rot X by -90°: +Y↔+Z cycle
+            R: [0, 1, 4, 5, 3, 2],
+            // L CW = rot X by +90°: opposite cycle
+            L: [0, 1, 5, 4, 2, 3],
+            // U CW = rot Y by -90°: +X↔+Z cycle
+            U: [5, 4, 2, 3, 0, 1],
+            // D CW = rot Y by +90°: opposite cycle
+            D: [4, 5, 2, 3, 1, 0],
+            // F CW = rot Z by -90°: +X↔+Y cycle
+            F: [2, 3, 1, 0, 4, 5],
+            // B CW = rot Z by +90°: opposite cycle
+            B: [3, 2, 0, 1, 4, 5],
+        };
+
+        /* ---- Axes et angles d'animation 3D ---- */
+        const MOVE_DEFS = {
+            R: { axis: [1, 0, 0], angle: -Math.PI / 2, filter: p => p.x === 1 },
+            Ri: { axis: [1, 0, 0], angle: Math.PI / 2, filter: p => p.x === 1 },
+            L: { axis: [1, 0, 0], angle: Math.PI / 2, filter: p => p.x === -1 },
+            Li: { axis: [1, 0, 0], angle: -Math.PI / 2, filter: p => p.x === -1 },
+            U: { axis: [0, 1, 0], angle: -Math.PI / 2, filter: p => p.y === 1 },
+            Ui: { axis: [0, 1, 0], angle: Math.PI / 2, filter: p => p.y === 1 },
+            D: { axis: [0, 1, 0], angle: Math.PI / 2, filter: p => p.y === -1 },
+            Di: { axis: [0, 1, 0], angle: -Math.PI / 2, filter: p => p.y === -1 },
+            F: { axis: [0, 0, 1], angle: -Math.PI / 2, filter: p => p.z === 1 },
+            Fi: { axis: [0, 0, 1], angle: Math.PI / 2, filter: p => p.z === 1 },
+            B: { axis: [0, 0, 1], angle: Math.PI / 2, filter: p => p.z === -1 },
+            Bi: { axis: [0, 0, 1], angle: -Math.PI / 2, filter: p => p.z === -1 },
+        };
+
+        /** Applique une permutation de couleurs (CW ou CCW = 3×CW) */
+        function permuteColors(colors, face, times) {
+            const perm = COLOR_PERMS[face];
+            let c = [...colors];
+            for (let t = 0; t < times; t++) {
+                const prev = [...c];
+                for (let i = 0; i < 6; i++) c[i] = prev[perm[i]];
+            }
+            return c;
+        }
+
+        /** Couleurs initiales pour un cubie à la position (x,y,z) */
+        function initialColors(x, y, z) {
+            return [
+                x === 1 ? 5 : -1,  // +X → Rouge (R)
+                x === -1 ? 4 : -1,  // -X → Orange (L)
+                y === 1 ? 0 : -1,  // +Y → Blanc (U)
+                y === -1 ? 1 : -1,  // -Y → Jaune (D)
+                z === 1 ? 2 : -1,  // +Z → Vert (F)
+                z === -1 ? 3 : -1,  // -Z → Bleu (B)
+            ];
+        }
+
+        /** Peint les matériaux d'un cubie d'après son tableau colors */
+        function paintCubie(mesh) {
+            const colors = mesh.userData.colors;
+            for (let i = 0; i < 6; i++) {
+                mesh.material[i].color.setHex(colors[i] >= 0 ? PALETTE[colors[i]] : BLACK);
+            }
+        }
+
+        /** Vérifie si le cube est résolu */
+        function isSolved() {
+            // Pour chaque face-direction, tous les cubies exposés doivent avoir la même couleur
+            const faces = [
+                { idx: 0, filter: c => c.userData.pos.x === 1 }, // +X
+                { idx: 1, filter: c => c.userData.pos.x === -1 }, // -X
+                { idx: 2, filter: c => c.userData.pos.y === 1 }, // +Y
+                { idx: 3, filter: c => c.userData.pos.y === -1 }, // -Y
+                { idx: 4, filter: c => c.userData.pos.z === 1 }, // +Z
+                { idx: 5, filter: c => c.userData.pos.z === -1 }, // -Z
+            ];
+            for (const { idx, filter } of faces) {
+                const group = cubies.filter(filter);
+                const color = group[0].userData.colors[idx];
+                if (group.some(c => c.userData.colors[idx] !== color)) return false;
+            }
+            return true;
+        }
+
+        // ================================================================
+        // SCÈNE THREE.JS
+        // ================================================================
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0f);
+            camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+            camera.position.set(5, 4, 5);
+            camera.lookAt(0, 0, 0);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(innerWidth, innerHeight);
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const d1 = new THREE.DirectionalLight(0xffffff, 0.7); d1.position.set(5, 10, 7); scene.add(d1);
+            const d2 = new THREE.DirectionalLight(0xffffff, 0.3); d2.position.set(-5, -3, -5); scene.add(d2);
+            cubeGroup = new THREE.Group(); scene.add(cubeGroup);
+            pivotGroup = new THREE.Group(); cubeGroup.add(pivotGroup);
+            buildCubies();
+            setupMouse();
+            setupKeyboard();
+            addEventListener('resize', () => {
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(innerWidth, innerHeight);
+            });
+            (function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
+        }
+
+        function buildCubies() {
+            // Nettoyer
+            cubeGroup.children.forEach(c => { if (c !== pivotGroup) cubeGroup.remove(c); });
+            cubies.forEach(c => { if (c.parent === cubeGroup) cubeGroup.remove(c); });
+            cubies = [];
+            const geo = new THREE.BoxGeometry(CUBIE_SIZE, CUBIE_SIZE, CUBIE_SIZE);
+            const edgeGeo = new THREE.EdgesGeometry(geo);
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 });
+            for (let x = -1; x <= 1; x++) {
+                for (let y = -1; y <= 1; y++) {
+                    for (let z = -1; z <= 1; z++) {
+                        const mats = Array.from({ length: 6 }, () =>
+                            new THREE.MeshStandardMaterial({ roughness: 0.3, metalness: 0.05 })
+                        );
+                        const mesh = new THREE.Mesh(geo, mats);
+                        mesh.position.set(x * GAP, y * GAP, z * GAP);
+                        mesh.userData.pos = { x, y, z };
+                        mesh.userData.colors = initialColors(x, y, z);
+                        mesh.add(new THREE.LineSegments(edgeGeo, edgeMat));
+                        paintCubie(mesh);
+                        cubeGroup.add(mesh);
+                        cubies.push(mesh);
+                    }
+                }
+            }
+        }
+
+        // ================================================================
+        // ANIMATION
+        // ================================================================
+
+        function animateMove(moveName, duration) {
+            return new Promise(resolve => {
+                const def = MOVE_DEFS[moveName];
+                if (!def) { resolve(); return; }
+                isAnimating = true;
+                const axis = new THREE.Vector3(...def.axis);
+                const angle = def.angle;
+                const affected = cubies.filter(c => def.filter(c.userData.pos));
+
+                // Déterminer le nom de face et le nombre de rotations CW
+                const face = moveName[0]; // R, L, U, D, F, B
+                const isPrime = moveName.length > 1; // Ri, Li, etc.
+                const cwTimes = isPrime ? 3 : 1; // CCW = 3×CW
+
+                // Transférer dans pivotGroup
+                affected.forEach(c => { cubeGroup.remove(c); pivotGroup.add(c); });
+
+                const startTime = performance.now();
+                function step(now) {
+                    const t = Math.min((now - startTime) / duration, 1);
+                    const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                    pivotGroup.quaternion.setFromAxisAngle(axis, angle * e);
+                    if (t < 1) { requestAnimationFrame(step); return; }
+
+                    // Finaliser
+                    pivotGroup.quaternion.identity();
+                    affected.forEach(c => {
+                        // Nouvelle position logique
+                        const p = c.userData.pos;
+                        const v = new THREE.Vector3(p.x, p.y, p.z);
+                        v.applyAxisAngle(axis, angle);
+                        c.userData.pos = {
+                            x: Math.round(v.x),
+                            y: Math.round(v.y),
+                            z: Math.round(v.z),
+                        };
+                        // Permuter les couleurs
+                        c.userData.colors = permuteColors(c.userData.colors, face, cwTimes);
+                        // Remettre dans cubeGroup avec position canonique + rotation identity
+                        pivotGroup.remove(c);
+                        cubeGroup.add(c);
+                        c.position.set(c.userData.pos.x * GAP, c.userData.pos.y * GAP, c.userData.pos.z * GAP);
+                        c.quaternion.identity();
+                        paintCubie(c);
+                    });
+                    isAnimating = false;
+                    resolve();
+                }
+                requestAnimationFrame(step);
+            });
+        }
+
+        // ================================================================
+        // FILE D'ATTENTE
+        // ================================================================
+
+        async function processQueue() {
+            if (isProcessing) return;
+            isProcessing = true;
+            while (moveQueue.length > 0) {
+                const { move, record, duration } = moveQueue.shift();
+                await animateMove(move, duration);
+                if (record) {
+                    const display = move.length > 1 ? move[0] + "'" : move;
+                    moveHistory.push(display);
+                    moveCount++;
+                    updateUI();
+                }
+                checkSolved();
+            }
+            isProcessing = false;
+        }
+
+        function queueMove(move, record, duration) {
+            moveQueue.push({ move, record, duration });
+            processQueue();
+        }
+
+        // ================================================================
+        // ACTIONS
+        // ================================================================
+
+        function doMove(move) {
+            if (moveQueue.length > 8) return;
+            queueMove(move, true, 300);
+        }
+
+        function scrambleCube() {
+            if (isAnimating || isProcessing) return;
+            const faces = ['R', 'L', 'U', 'D', 'F', 'B'];
+            const n = 20 + Math.floor(Math.random() * 6);
+            let last = '';
+            moveHistory = []; moveCount = 0; updateUI();
+            for (let i = 0; i < n; i++) {
+                let f; do { f = faces[Math.floor(Math.random() * 6)]; } while (f === last);
+                last = f;
+                const move = Math.random() < 0.5 ? f : f + 'i';
+                queueMove(move, true, 60);
+            }
+        }
+
+        function resetCube() {
+            moveQueue = []; isProcessing = false; isAnimating = false;
+            while (pivotGroup.children.length) {
+                const c = pivotGroup.children[0]; pivotGroup.remove(c); cubeGroup.add(c);
+            }
+            pivotGroup.quaternion.identity();
+            moveHistory = []; moveCount = 0;
+            buildCubies(); updateUI();
+        }
+
+        function solveCube() {
+            if (isAnimating || isProcessing) return;
+            if (isSolved()) return;
+            // Inverser l'historique interne (Ri↔R, etc.)
+            const inverseMap = { R: 'Ri', Ri: 'R', L: 'Li', Li: 'L', U: 'Ui', Ui: 'U', D: 'Di', Di: 'D', F: 'Fi', Fi: 'F', B: 'Bi', Bi: 'B' };
+            // Reconstruire les noms internes depuis l'historique affiché
+            const internalHistory = moveHistory.map(m => m.includes("'") ? m[0] + 'i' : m);
+            const inv = internalHistory.slice().reverse().map(m => inverseMap[m]);
+            moveHistory = []; moveCount = 0; updateUI();
+            inv.forEach(m => queueMove(m, false, 50));
+        }
+
+        // ================================================================
+        // CONTRÔLES SOURIS — Rotation libre + drag de faces
+        // ================================================================
+
+        /**
+         * Détermine le mouvement à effectuer d'après un drag sur une face.
+         *
+         * Algorithme :
+         * 1. Projeter le drag écran en 3D dans l'espace local du cubeGroup
+         *    via les vecteurs right/up de la caméra.
+         * 2. Retirer la composante normale à la face → direction tangentielle.
+         * 3. Axe de rotation = normal × dragDir (produit vectoriel).
+         * 4. Arrondir au plus proche axe cardinal (X, Y ou Z).
+         * 5. La couche à tourner = coordonnée du cubie le long de cet axe.
+         * 6. Le signe du produit vectoriel × le signe de la couche
+         *    détermine si c'est un mouvement standard ou inverse (prime).
+         */
+        function computeFaceDragMove(info, screenDX, screenDY) {
+            // Vecteurs caméra → espace local cubeGroup
+            const inv = new THREE.Matrix4().copy(cubeGroup.matrixWorld).invert();
+            const camR = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+            const camU = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+            camR.transformDirection(inv);
+            camU.transformDirection(inv);
+
+            // Direction de drag en 3D local (screen Y inversé)
+            const drag = camR.clone().multiplyScalar(screenDX)
+                .add(camU.clone().multiplyScalar(-screenDY)).normalize();
+
+            // Projeter sur le plan de la face (retirer la composante normale)
+            const n = info.normal;
+            drag.sub(n.clone().multiplyScalar(drag.dot(n)));
+            if (drag.length() < 0.001) return null;
+            drag.normalize();
+
+            // Axe de rotation = normal × drag
+            const rot = new THREE.Vector3().crossVectors(n, drag);
+
+            // Arrondir au plus proche axe cardinal
+            const abs = [Math.abs(rot.x), Math.abs(rot.y), Math.abs(rot.z)];
+            const maxIdx = abs.indexOf(Math.max(...abs));
+            const crossSign = Math.sign([rot.x, rot.y, rot.z][maxIdx]);
+
+            // Couche = coordonnée du cubie le long de l'axe de rotation
+            const pos = info.cubie.userData.pos;
+            const layer = [pos.x, pos.y, pos.z][maxIdx];
+            if (layer === 0) return null; // Couche centrale — pas de mouvement standard
+
+            // Nom de face
+            const faceMap = [
+                layer > 0 ? 'R' : 'L',  // Axe X
+                layer > 0 ? 'U' : 'D',  // Axe Y
+                layer > 0 ? 'F' : 'B',  // Axe Z
+            ];
+            const face = faceMap[maxIdx];
+
+            // Direction : cross_sign × layer > 0 → inverse (prime)
+            return (crossSign * layer > 0) ? face + 'i' : face;
+        }
+
+        function setupMouse() {
+            const raycaster = new THREE.Raycaster();
+            let mode = null;  // null | 'orbit' | 'face'
+            let faceInfo = null;
+            let startPos = { x: 0, y: 0 };
+            const THRESHOLD = 15;
+            const el = renderer.domElement;
+
+            // --- Helpers ---
+            function tryRaycast(cx, cy) {
+                const mouse = new THREE.Vector2(
+                    (cx / innerWidth) * 2 - 1,
+                    -(cy / innerHeight) * 2 + 1
+                );
+                raycaster.setFromCamera(mouse, camera);
+                return raycaster.intersectObjects(cubies);
+            }
+
+            function beginInteraction(cx, cy) {
+                startPos = { x: cx, y: cy };
+                if (!isAnimating && !isProcessing) {
+                    const hits = tryRaycast(cx, cy);
+                    if (hits.length > 0) {
+                        mode = 'face';
+                        faceInfo = {
+                            cubie: hits[0].object,
+                            normal: hits[0].face.normal.clone(),
+                        };
+                        return;
+                    }
+                }
+                mode = 'orbit';
+            }
+
+            function moveInteraction(cx, cy) {
+                if (mode === 'orbit') {
+                    cubeGroup.rotation.y += (cx - startPos.x) * 0.005;
+                    cubeGroup.rotation.x += (cy - startPos.y) * 0.005;
+                    startPos = { x: cx, y: cy };
+                } else if (mode === 'face' && faceInfo) {
+                    const dx = cx - startPos.x;
+                    const dy = cy - startPos.y;
+                    if (Math.sqrt(dx * dx + dy * dy) >= THRESHOLD) {
+                        const move = computeFaceDragMove(faceInfo, dx, dy);
+                        if (move) doMove(move);
+                        mode = null;
+                        faceInfo = null;
+                    }
+                }
+            }
+
+            function endInteraction() {
+                mode = null;
+                faceInfo = null;
+            }
+
+            // --- Souris ---
+            el.addEventListener('mousedown', e => { if (e.button === 0) beginInteraction(e.clientX, e.clientY); });
+            el.addEventListener('mousemove', e => moveInteraction(e.clientX, e.clientY));
+            el.addEventListener('mouseup', endInteraction);
+            el.addEventListener('mouseleave', endInteraction);
+
+            // --- Tactile ---
+            el.addEventListener('touchstart', e => beginInteraction(e.touches[0].clientX, e.touches[0].clientY));
+            el.addEventListener('touchmove', e => {
+                e.preventDefault();
+                moveInteraction(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: false });
+            el.addEventListener('touchend', endInteraction);
+        }
+
+        // ================================================================
+        // CONTRÔLE CLAVIER
+        // ================================================================
+
+        function setupKeyboard() {
+            addEventListener('keydown', e => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                const k = e.key.toUpperCase();
+                if ('RLUDFB'.includes(k)) doMove(e.shiftKey ? k + 'i' : k);
+            });
+        }
+
+        // ================================================================
+        // UI
+        // ================================================================
+
+        function updateUI() {
+            document.getElementById('move-count').textContent = moveCount;
+            const el = document.getElementById('move-history');
+            el.innerHTML = moveHistory.length === 0
+                ? '<span style="color:#555">Aucun mouvement</span>'
+                : moveHistory.map(m => `<span>${m}</span>`).join('');
+            document.getElementById('history-panel').scrollTop = 9999;
+        }
+
+        function checkSolved() {
+            const ind = document.getElementById('solved-indicator');
+            if (moveCount > 0 && isSolved()) {
+                ind.classList.add('visible');
+                setTimeout(() => ind.classList.remove('visible'), 3000);
+            } else {
+                ind.classList.remove('visible');
+            }
+        }
+
+        addEventListener('DOMContentLoaded', () => { initScene(); updateUI(); });
+    </script>
+</body>
+
+</html>
