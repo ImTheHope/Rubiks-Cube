@@ -22,4 +22,4 @@ Développé par **ImTheHope**.
 
 ## 📄 Licence
 
-Ce projet est sous licence MIT.
+Ce projet n'est pas sous licence.
